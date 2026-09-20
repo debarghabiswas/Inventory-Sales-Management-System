@@ -112,6 +112,12 @@ class Inventory:
         sale_df.to_csv(SALES_FILE, index=False)
         print("Complete sale report successfully saved to sales.csv")
 
+    def display_products(self):
+        print("Product ID\tProduct Name\tQuantity\tPrice per unit")
+        for prod_obj in self.products_collection.values():
+            product_details = prod_obj.get_details()
+            print(f'{product_details['product_id']}\t{product_details['product_name']}\t{product_details['quantity']}\t{product_details['price']}')
+
     def add_product(self, product: dict):
         if product['product_id'] in self.products_collection:
             raise InvalidProductIdError(message="Product ID already exist. Use Update Stock function")
@@ -145,11 +151,10 @@ class Inventory:
             
     def low_stock_products(self, threshold: int): #ALL DONE
         needs_restock = []
-        for pid in self.products_collection:
-            for prod_obj in self.products_collection[pid]:
-                product_detail = prod_obj.get_details()
-                if product_detail['quantity'] < threshold:
-                    needs_restock.append(product_detail['product_id'])
+        for prod_obj in self.products_collection.values():
+            product_detail = prod_obj.get_details()
+            if product_detail['quantity'] < threshold:
+                needs_restock.append(product_detail['product_id'])
         if needs_restock:
             print("Following products with Product ID needs to be restocked: ")
             for pid in needs_restock:
@@ -260,6 +265,8 @@ def main():
     shop_system = Inventory()
     shop_system.load_data()
     while True:
+        print("=== PRODUCTS IN OUR INVENTORY ===")
+        shop_system.display_products()
         print('=== INVENTORY & SALES MANAGEMENT SYSTEM ===')
         print("1.Add a New Product\n2.Search for a Product\n3.Restock Existing Product\n4.Record a Sale\n5.Show Low Stock Alerts\n6.View Sorted Inventory\n7.View Total Sales Revenue\n8.Generate Visual Report(Graphs)\n9.Exit")
         choice = int(input("Enter your choice: "))
