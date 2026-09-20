@@ -79,29 +79,26 @@ class Sale:
 
 class Inventory:
     def __init__(self):
-        inventory_data = pd.read_csv(INVENTORY_FILE)
-        sales_data = pd.read_csv(SALES_FILE)
-        if not inventory_data:
-            self.products_collection = {}# Product Class Object dictionary
-        else:
-            self.products_collection = {}
-            for row in inventory_data.itertuples(index=False):
-                product_dict = {
-                    'product_id' : int(row.product_id),
-                    'product_name' : str(row.product_name),
-                    'category' : str(row.category),
-                    'price' : float(row.price),
-                    'quantity' : int(row.quantity)
-                }
-                self.products_collection[row.product_id] = Product(product_dict)
+        self.products_collection = {}
+        self.sales_records = []
+            
 
-        if not sales_data:
-            self.sales_records = []# Sale Class object list
-        else:
-            self.sales_records = []
-            for row in sales_data.itertuples(index=False):
-                sale_list = [str(row.transaction_id), str(row.date), int(row.product_id), int(row.quantity_sold), float(row.total_amount)]
-                self.sales_records.append(Sale(sale=sale_list))
+    def load_data(self):
+        inventory_df = pd.read_csv(INVENTORY_FILE)
+        sales_df = pd.read_csv(SALES_FILE)
+        for row in inventory_df.itertuples(index=False):
+            product_dict = {
+                'product_id' : int(row.product_id),
+                'product_name' : str(row.product_name),
+                'category' : str(row.category),
+                'price' : float(row.price),
+                'quantity' : int(row.quantity)
+            }
+            self.products_collection[row.product_id] = Product(product_dict)
+
+        for row in sales_df.itertuples(index=False):
+                        sale_list = [str(row.transaction_id), str(row.date), int(row.product_id), int(row.quantity_sold), float(row.total_amount)]
+                        self.sales_records.append(Sale(sale=sale_list))
                 
     def save_data(self):
         inventory_list = [obj.get_details() for obj in self.products_collection.values()]
@@ -115,18 +112,19 @@ class Inventory:
         sale_df.to_csv(SALES_FILE, index=False)
         print("Complete sale report successfully saved to sales.csv")
 
-    def add_product(self, product: dict): # ALL DONE
+    def add_product(self, product: dict):
         if product['product_id'] in self.products_collection:
             raise InvalidProductIdError(message="Product ID already exist. Use Update Stock function")
         else:
             product_obj = Product(product)
-            self.products_collection[product['product_id']] = product_obj.get_details()
+            self.products_collection[product['product_id']] = product_obj
             print("Product Added.")
 
-    def search_product(self, product_id: int): # ALL DONE
+    def search_product(self, product_id: int):
         if product_id in self.products_collection:
-            product_obj = self.products_collection['product_id']
+            product_obj = self.products_collection[product_id]
             product_details = product_obj.get_details()
+            print("*** Product Details ***")
             for key, value in product_details.items():
                 print(f'{key} = {value}')
         else:
@@ -180,13 +178,14 @@ class Inventory:
                 print("Invalid Choice! Choose between PRICE, QUANTITY OR SALE")
 
     def generate_transaction_id(self): # GENERATING RANDOM TRANSACTION ID
-        existed_transaction_id = list(map(lambda x: x[0], self.sales_records))
-        transaction_id = random.randint(1000000, 9999999)
-        if transaction_id in existed_transaction_id:
-            return self.generate_transaction_id()
-        return transaction_id
+        existing_transaction_ids = {str(sale.transaction_id) for sale in self.sales_records}
 
-    def generate_date(): # GENERATING DATE STRING
+        while True:
+            transaction_id = random.randint(1000000, 9999999)
+            if str(transaction_id) not in existing_transaction_ids:
+                return transaction_id
+
+    def generate_date(self): # GENERATING DATE STRING
         return str(datetime.today())
 
     def transaction(self, product_id: int, asked_quantity: int): # ALL DONE
@@ -205,8 +204,7 @@ class Inventory:
                 sale_obj = Sale(sale=[transaction_id, transaction_date, product_obj.product_id, asked_quantity, total_amount])
                 self.sales_records.append(sale_obj)
                 receipt = sale_obj.get_receipt()
-                for i in receipt:
-                    print(f"Sold {i[3]}x {product_obj.product_name}. Total Bill:Rs.{i[4]}")
+                print(f"Sold {receipt[3]}x {product_obj.product_name}. Total Bill:Rs.{receipt[4]}")
 
     def total_sales(self): # ALL DONE
         overall_revenue = 0
@@ -217,14 +215,14 @@ class Inventory:
     def generate_reports(self, graph: str): #ALL DONE
         sale_df = pd.read_csv(SALES_FILE)
         inventory_df = pd.read_csv(INVENTORY_FILE)
-        if not self.sales_records or not sale_df:
+        if not self.sales_records or sale_df.empty:
             raise Exception("Not enough sales data to generate reports.")
         else:
             match graph:
                 case 'PRODUCT':
                     grouped_data = (sale_df.groupby('product_id', as_index=False)['quantity_sold'].sum().rename(columns={'quantity_sold':'total_units_sold'}))
                     plt.figure(figsize=(8,5))
-                    plt.bar(grouped_data['product_id'].astype(str), grouped_data['total_units_sold'], color='skyeblue', edgecolor='black', width=0.5)
+                    plt.bar(grouped_data['product_id'].astype(str), grouped_data['total_units_sold'], edgecolor='black', width=0.5)
                     plt.title('Total Units Sold per Product')
                     plt.xlabel('Product ID')
                     plt.ylabel('Total Quantity Sold')
@@ -238,7 +236,7 @@ class Inventory:
                     category_summary = category_group['total_amount'].sum().reset_index()
                     plt.figure(figsize=(6,6))
                     slice_colors = ['#ff9999', '#66b3ff']
-                    plt.pie(category_summary['total_amount'], labels=category_summary['category'], autopct='%1.1f%%', startangle=140, colors=slice_colors, wedgeprops={'edgecolor':'black', 'linewidth':1, 'antialised':True})
+                    plt.pie(category_summary['total_amount'], labels=category_summary['category'], autopct='%1.1f%%', startangle=140, colors=slice_colors, wedgeprops={'edgecolor':'black', 'linewidth':1, 'antialiased':True})
                     plt.title('Sales Distribution by Category')
                     plt.tight_layout()
                     plt.show()
@@ -260,6 +258,7 @@ class Inventory:
 
 def main():
     shop_system = Inventory()
+    shop_system.load_data()
     while True:
         print('=== INVENTORY & SALES MANAGEMENT SYSTEM ===')
         print("1.Add a New Product\n2.Search for a Product\n3.Restock Existing Product\n4.Record a Sale\n5.Show Low Stock Alerts\n6.View Sorted Inventory\n7.View Total Sales Revenue\n8.Generate Visual Report(Graphs)\n9.Exit")
@@ -273,37 +272,63 @@ def main():
                 cat = input('Category: ')
                 price = float(input('Price: '))
                 quantity = int(input("Quantity: "))
-                shop_system.add_product(product={'product_id':prod_id, 'product_name':prod_name, 'category':cat, 'price':price, 'quantity':quantity})
+                try:
+                    shop_system.add_product(product={'product_id':prod_id, 'product_name':prod_name, 'category':cat, 'price':price, 'quantity':quantity})
+                except InvalidProductIdError as e:
+                    print(f'Application Error: {e}')
             case 2:
                 print("=== Search for a Product ===")
                 prod_id = int(input("Enter Product ID: "))
-                shop_system.search_product(prod_id)
+                try:
+                    shop_system.search_product(prod_id)
+                except InvalidProductIdError as e:
+                    print(f'Application Error: {e}')
             case 3:
                 print('=== RESTOCK EXISTING PRODUCT ===')
                 prod_id = int(input("Enter Product ID: "))
                 add_quantity = int(input("Enter New Quantity to add: "))
-                shop_system.update_product(prod_id, add_quantity)
+                try:
+                    shop_system.update_product(prod_id, add_quantity)
+                except InvalidProductIdError as e:
+                    print(f'Application Error: {e}')
             case 4:
                 print('=== RECORD A SALE ===')
                 print("Enter Product Id and quantity to make a sale...")
                 product_id = int(input("Product ID: "))
                 quantity = int(input("Quantity: "))
-                shop_system.transaction(product_id=product_id, asked_quantity=quantity)
+                try:
+                    shop_system.transaction(product_id=product_id, asked_quantity=quantity)
+                except InvalidProductIdError as e:
+                    print(f'Application Error: {e}')
+                except InsufficientStockError as e:
+                    print(f"Application Error: {e}")
             case 5:
                 print('=== VIEW LOW QUANTITY PRODUCTS ===')
                 threshold = int(input("Enter your threshold of low stocks: "))
-                shop_system.low_stock_products(threshold)
+                try:
+                    shop_system.low_stock_products(threshold)
+                except Exception as e:
+                    print(f'Application Error: {e}')
             case 6:
                 print('=== VIEW SORTED INVENTORY BASED ON PRICE, QUANTITY OR SALE(WORK IN PROGRESS) ===')
                 sort_order = input("Enter sorted order: ").upper()
-                shop_system.sort_products(sort_order=sort_order)
+                try:
+                    shop_system.sort_products(sort_order=sort_order)
+                except Exception as e:
+                    print(f'Application Error: {e}')
             case 7:
-                shop_system.total_sales()
+                try:
+                    shop_system.total_sales()
+                except Exception as e:
+                    print(f'Application Error: {e}')
             case 8:
                 print('=== VIEW GRAPHICAL CHARTS ===')
                 print('CHOOSE FROM PRODUCT SALES BAR CHART, CATEGORY PIE CHART, MONTHLY REVENUE TREND (ENTER THE FIRST WORD OF THE CHARTS)')
                 chart = input('CHART: ').upper()
-                shop_system.generate_reports(graph=chart)
+                try:
+                    shop_system.generate_reports(graph=chart)
+                except Exception as e:
+                    print(f"Application Error: {e}")
             case 9:
                 shop_system.save_data()
                 break
