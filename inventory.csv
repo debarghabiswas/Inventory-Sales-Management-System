@@ -1,3 +1,4 @@
 product_id,product_name,category,price,quantity
-11,MILK,milk-product,10.0,450
+11,MILK,milk-product,10.0,200
 12,RED BULL,energy-drink,80.0,400
+13,OLD MONK,alcohol,250.0,420

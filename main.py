@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import random
-from datetime import datetime
+from datetime import date
 
 INVENTORY_FILE = "./inventory.csv"
 SALES_FILE = "./sales.csv"
@@ -150,6 +150,8 @@ class Inventory:
                     print(f'{key} = {value}')
             
     def low_stock_products(self, threshold: int): #ALL DONE
+        if threshold < 0:
+            raise ValueError("Threshold cannot be negative!")
         needs_restock = []
         for prod_obj in self.products_collection.values():
             product_detail = prod_obj.get_details()
@@ -191,7 +193,7 @@ class Inventory:
                 return transaction_id
 
     def generate_date(self): # GENERATING DATE STRING
-        return str(datetime.today())
+        return str(date.today())
 
     def transaction(self, product_id: int, asked_quantity: int): # ALL DONE
         if product_id not in self.products_collection:
@@ -314,7 +316,7 @@ def main():
                 threshold = int(input("Enter your threshold of low stocks: "))
                 try:
                     shop_system.low_stock_products(threshold)
-                except Exception as e:
+                except ValueError as e:
                     print(f'Application Error: {e}')
             case 6:
                 print('=== VIEW SORTED INVENTORY BASED ON PRICE, QUANTITY OR SALE(WORK IN PROGRESS) ===')
