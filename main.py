@@ -262,25 +262,14 @@ def main():
                 except ValueError as e:
                     print(f'Application Error: {e}')
             case 6:
-                print('=== VIEW SORTED INVENTORY BASED ON PRICE, QUANTITY OR SALE(WORK IN PROGRESS) ===')
-                sort_order = input("Enter sorted order: ").upper()
-                try:
-                    shop_system.sort_products(sort_order=sort_order)
-                except Exception as e:
-                    print(f'Application Error: {e}')
+                print("IN WORKING")
             case 7:
                 try:
                     shop_system.total_sales()
                 except Exception as e:
                     print(f'Application Error: {e}')
             case 8:
-                print('=== VIEW GRAPHICAL CHARTS ===')
-                print('CHOOSE FROM PRODUCT SALES BAR CHART, CATEGORY PIE CHART, MONTHLY REVENUE TREND (ENTER THE FIRST WORD OF THE CHARTS)')
-                chart = input('CHART: ').upper()
-                try:
-                    shop_system.generate_reports(graph=chart)
-                except Exception as e:
-                    print(f"Application Error: {e}")
+                print("IN WORKING")
             case 9:
                 shop_system.save_data()
                 break
