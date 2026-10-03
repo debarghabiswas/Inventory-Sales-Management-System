@@ -203,47 +203,7 @@ class Inventory:
         print(f'Total Revenue Generated: Rs.{overall_revenue}')
 
     def generate_reports(self, graph: str): #ALL DONE
-        sale_df = pd.read_csv(SALES_FILE)
-        inventory_df = pd.read_csv(INVENTORY_FILE)
-        if not self.sales_records or sale_df.empty:
-            raise Exception("Not enough sales data to generate reports.")
-        else:
-            match graph:
-                case 'PRODUCT':
-                    grouped_data = (sale_df.groupby('product_id', as_index=False)['quantity_sold'].sum().rename(columns={'quantity_sold':'total_units_sold'}))
-                    plt.figure(figsize=(8,5))
-                    plt.bar(grouped_data['product_id'].astype(str), grouped_data['total_units_sold'], edgecolor='black', width=0.5)
-                    plt.title('Total Units Sold per Product')
-                    plt.xlabel('Product ID')
-                    plt.ylabel('Total Quantity Sold')
-                    plt.grid(axis='y', linestyle='--', alpha=0.7)
-                    plt.gca().yaxis.get_major_locator().set_params(integer=True)
-                    plt.tight_layout()
-                    plt.show()
-                case 'CATEGORY':
-                    merged_df = pd.merge(sale_df, inventory_df, on='product_id')
-                    category_group = merged_df.groupby('category')
-                    category_summary = category_group['total_amount'].sum().reset_index()
-                    plt.figure(figsize=(6,6))
-                    slice_colors = ['#ff9999', '#66b3ff']
-                    plt.pie(category_summary['total_amount'], labels=category_summary['category'], autopct='%1.1f%%', startangle=140, colors=slice_colors, wedgeprops={'edgecolor':'black', 'linewidth':1, 'antialiased':True})
-                    plt.title('Sales Distribution by Category')
-                    plt.tight_layout()
-                    plt.show()
-                case 'MONTHLY':
-                    sale_df['date'] = pd.to_datetime(sale_df['date'])
-                    sale_df['month_year'] = sale_df['date'].dt.to_period('M')
-                    monthly_revenue = sale_df.groupby('month_year')['total_amount'].sum().reset_index()
-                    monthly_revenue['month_year'] = monthly_revenue['month_year'].astype(str)
-                    plt.figure(figsize=(9,5))
-                    plt.plot(monthly_revenue['month_year'], monthly_revenue['total_amount'], color='#2ca02c', marker='o', linewidth=2, markersize=8, linestyle='-')
-                    plt.title('Monthly Revenue Trend')
-                    plt.xlabel('Timeline(Month)')
-                    plt.ylabel('Total Revenue (Rs.)')
-                    plt.grid(True, linestyle=':', alpha=0.6)
-                    plt.gca().yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"Rs.{x:,.0f}"))
-                    plt.tight_layout()
-                    plt.show()
+        pass
 
 
 def main():
