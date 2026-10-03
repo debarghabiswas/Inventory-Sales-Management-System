@@ -165,24 +165,7 @@ class Inventory:
             print("All Stock Levels are healthy")
 
     def sort_products(self, sort_order: str): # ALL DONE EXCEPT SALE SORTING
-        match sort_order:
-            case 'PRICE':
-                sorted_price = dict(sorted(self.products_collection.items(), key=lambda item: item[1].price))
-                print("Sorted the products in ascending price order: ")
-                for product_id, product_obj in sorted_price.items():
-                    print(f'{product_id}, {product_obj.product_name} : {product_obj.price}')
-
-            case 'QUANTITY':
-                sorted_quantity = dict(sorted(self.products_collection.items(), key=lambda item: item[1].quantity))
-                print("Sorted the products in ascending quantityt order: ")
-                for product_id, product_obj in sorted_quantity.items():
-                    print(f'{product_id}, {product_obj.product_name} : {product_obj.quantity}')
-                
-            case 'SALE':
-                pass
-
-            case _:
-                print("Invalid Choice! Choose between PRICE, QUANTITY OR SALE")
+        pass
 
     def generate_transaction_id(self): # GENERATING RANDOM TRANSACTION ID
         existing_transaction_ids = {str(sale.transaction_id) for sale in self.sales_records}
