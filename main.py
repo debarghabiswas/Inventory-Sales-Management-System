@@ -125,6 +125,7 @@ class Inventory:
         inventory_df = pd.DataFrame(inventory_list)
         inventory_df = inventory_df.rename(columns={'product_id':'PRODUCT ID', 'product_name':'PRODUCT NAME', 'category':'CATEGORY', 'price':'PRICE', 'quantity':'QUANTITY'})
         print(inventory_df)
+        print("\n")
 
     def add_product(self, product: dict):
         if product['product_id'] in self.products_collection:
@@ -180,16 +181,26 @@ class Inventory:
             print("All Stock Levels are healthy")
             print('\n')
 
-    def sort_products(self, sort_order: str): # I TOTAL BULLSHIT
+    def sort_products(self, sort_order: str): # SORTING BY PRICE, QUANTITY DONE (SALE SORTING IS PENDING)
         match sort_order:
             case 'PRICE':
-                pass
+                sortedbyprice_dict = dict(sorted(self.products_collection.items(), key=lambda item: item[1].price))
+                inventory_list = [product_obj.get_details() for product_obj in sortedbyprice_dict.values()]
+                inventory_df = pd.DataFrame(inventory_list)
+                inventory_df = inventory_df.rename(columns={'product_id':'PRODUCT ID', 'product_name':'PRODUCT NAME', 'category':'CATEGORY', 'price':'PRICE', 'quantity':'QUANTITY'})
+                print(inventory_df)
+                print("\n")
             case 'QUANTITY':
-                pass
+                sortedbyquantity_dict = dict(sorted(self.products_collection.items(), key=lambda item: item[1].quantity))
+                inventory_list = [product_obj.get_details() for product_obj in sortedbyquantity_dict.values()]
+                inventory_df = pd.DataFrame(inventory_list)
+                inventory_df = inventory_df.rename(columns={'product_id':'PRODUCT ID', 'product_name':'PRODUCT NAME', 'category':'CATEGORY', 'price':'PRICE', 'quantity':'QUANTITY'})
+                print(inventory_df)
+                print("\n")
             case 'SALE':
                 pass
             case _:
-                print("INVALID SORT ORDER!\n")
+                raise ValueError("Invalid Sorting Order!")
 
     def generate_transaction_id(self): # GENERATING RANDOM TRANSACTION ID
         existing_transaction_ids = [str(sale_obj.transaction_id) for sale_obj in self.sales_records.values()]
@@ -238,8 +249,30 @@ class Inventory:
         print('##################################')
         print('\n')
 
-    def generate_reports(self, graph: str): #I DON'T KNOW GRAPH PLOTTING(WILL DO IT AFTER FINAL SEM)
-        pass
+    def generate_reports(self): 
+        sale_df = pd.read_csv(SALES_FILE)
+        inventory_df = pd.read_csv(INVENTORY_FILE)
+        if not self.sales_records or sale_df.empty():
+            raise Exception("Not enough sales data to generate reports")
+        else:
+            # PRODUCT BAR GRAPH
+            plt.subplot(3,1,1)
+            grouped_data_prod = sale_df.groupby('product_id', as_index=False)['quantity_sold'].sum().rename(columns={'quantity_sold':'total_units_sold'})
+            plt.bar(grouped_data_prod['product_id'].astype(str), grouped_data_prod['total_units_sold'].astype(str))
+            plt.title("Total Units Sold per Product")
+            plt.xlabel('Product ID')
+            plt.ylabel("Total Quantity Sold")
+            plt.tight_layout()
+            # CATEGORY PIE GRAPH
+            plt.subplot(3,1,2)
+            merged_df = pd.merge(sale_df, inventory_df, on='product_id')
+            category_group = merged_df.groupby('category')
+            category_summary = category_group['total_amount'].sum().reset_index()
+            plt.pie(category_summary['total_amount'], labels=category_summary['category'])
+            plt.title('Sales Distribution by Category')
+            plt.show()
+            # MONTHLY PLOT GRAPH
+            
 
 
 shop_system = Inventory()
@@ -247,10 +280,9 @@ shop_system.load_data()
 while True:
     print("=== PRODUCTS IN OUR INVENTORY ===")
     shop_system.display_products()
-    print()
     print('=== INVENTORY & SALES MANAGEMENT SYSTEM ===')
     print("1.Add a New Product\n2.Search for a Product\n3.Restock Existing Product\n4.Record a Sale\n5.Show Low Stock Alerts\n6.View Sorted Inventory\n7.View Total Sales Revenue\n8.Generate Visual Report(Graphs)\n9.Exit")
-    print()
+    print("\n")
     choice = int(input("Enter your choice: "))
     match choice:
         case 1:
@@ -299,7 +331,13 @@ while True:
             except ValueError as e:
                 print(f'Application Error: {e}\n')
         case 6:
-            print("WORK IN PROGRESS\n")
+            print("=== VIEW ON BASIS OF PRICE, QUANTITY ===")
+            print("Enter in which sorted order you want to see: ")
+            sorted_order = input("Sorted Order: ")
+            try:
+                shop_system.sort_products(sorted_order)
+            except ValueError as e:
+                print(f"Application Error: {e}\n")    
         case 7:
             try:
                 shop_system.total_sales()
