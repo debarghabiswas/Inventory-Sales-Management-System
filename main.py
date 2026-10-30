@@ -113,12 +113,10 @@ class Inventory:
         inventory_list = [product_obj.get_details() for product_obj in self.products_collection.values()]
         inventory_df = pd.DataFrame(inventory_list)
         inventory_df.to_csv(INVENTORY_FILE, index=False)
-        print("Complete inventory report successfully saved to inventory.csv")
 
         sale_list = [sale_obj.get_receipt() for sale_obj in self.sales_records.values()]
         sale_df = pd.DataFrame(sale_list)
         sale_df.to_csv(SALES_FILE, index=False)
-        print("Complete sale report successfully saved to sales.csv")
 
     def display_products(self):
         inventory_list = [product_obj.get_details() for product_obj in self.products_collection.values()]
@@ -210,10 +208,7 @@ class Inventory:
             if str(transaction_id) not in existing_transaction_ids:
                 return transaction_id
 
-    def generate_date(self): # GENERATING DATE STRING
-        return str(date.today())
-
-    def transaction(self, product_id: int, asked_quantity: int): # ALL DONE
+    def transaction(self, product_id: int, asked_quantity: int, date_sold: str): # ALL DONE
         if product_id not in self.products_collection:
             raise InvalidProductIdError()
         else:
@@ -225,7 +220,7 @@ class Inventory:
                 total_amount = product_price * asked_quantity
                 product_obj.reduce_stock(asked_quantity)
                 transaction_id = self.generate_transaction_id()
-                transaction_date = self.generate_date()
+                transaction_date = date_sold
                 sale_obj = Sale(sale={
                                         'transaction_id':transaction_id, 
                                         'date':transaction_date, 
@@ -252,27 +247,36 @@ class Inventory:
     def generate_reports(self): 
         sale_df = pd.read_csv(SALES_FILE)
         inventory_df = pd.read_csv(INVENTORY_FILE)
-        if not self.sales_records or sale_df.empty():
+        if not self.sales_records or sale_df.empty:
             raise Exception("Not enough sales data to generate reports")
         else:
+            plt.figure(figsize=(20,20))
             # PRODUCT BAR GRAPH
             plt.subplot(3,1,1)
             grouped_data_prod = sale_df.groupby('product_id', as_index=False)['quantity_sold'].sum().rename(columns={'quantity_sold':'total_units_sold'})
-            plt.bar(grouped_data_prod['product_id'].astype(str), grouped_data_prod['total_units_sold'].astype(str))
+            plt.bar(grouped_data_prod['product_id'].astype(str), grouped_data_prod['total_units_sold'])
             plt.title("Total Units Sold per Product")
             plt.xlabel('Product ID')
             plt.ylabel("Total Quantity Sold")
-            plt.tight_layout()
             # CATEGORY PIE GRAPH
             plt.subplot(3,1,2)
             merged_df = pd.merge(sale_df, inventory_df, on='product_id')
             category_group = merged_df.groupby('category')
             category_summary = category_group['total_amount'].sum().reset_index()
-            plt.pie(category_summary['total_amount'], labels=category_summary['category'])
+            plt.pie(category_summary['total_amount'], labels=category_summary['category'], autopct='%1.1f%%')
             plt.title('Sales Distribution by Category')
-            plt.show()
             # MONTHLY PLOT GRAPH
+            plt.subplot(3,1,3)
+            sale_df['date'] = pd.to_datetime(sale_df['date'])
+            sale_df['month_year'] = sale_df['date'].dt.to_period('M')
+            monthly_revenue = sale_df.groupby('month_year')['total_amount'].sum().reset_index()
+            monthly_revenue['month_year'] = monthly_revenue['month_year'].astype(str)
+            plt.plot(monthly_revenue['month_year'], monthly_revenue['total_amount'], color='#2ca02c', marker='o', linestyle='-')
+            plt.title('Monthly Revenue Trend')
+            plt.xlabel('Timeline(Month)')
+            plt.ylabel('Total Revenue (Rs.)')
             
+            plt.show()
 
 
 shop_system = Inventory()
@@ -310,6 +314,7 @@ while True:
             add_quantity = int(input("Enter New Quantity to add: "))
             try:
                 shop_system.update_product(prod_id, add_quantity)
+                shop_system.save_data()
             except InvalidProductIdError as e:
                 print(f'Application Error: {e}\n')
         case 4:
@@ -317,8 +322,10 @@ while True:
             print("Enter Product Id and quantity to make a sale...")
             product_id = int(input("Product ID: "))
             quantity = int(input("Quantity: "))
+            date_sold = input("Date Sold(YYYY-MM-DD): ")
             try:
-                shop_system.transaction(product_id=product_id, asked_quantity=quantity)
+                shop_system.transaction(product_id=product_id, asked_quantity=quantity, date_sold=date_sold)
+                shop_system.save_data()
             except InvalidProductIdError as e:
                 print(f'Application Error: {e}\n')
             except InsufficientStockError as e:
@@ -344,9 +351,15 @@ while True:
             except Exception as e:
                 print(f'Application Error: {e}\n')
         case 8:
-            print("WORK IN PROGRESS\n")
+            try:
+                print('\n')
+                shop_system.generate_reports()
+            except Exception as e:
+                print(f'Applicaiton Error: {e}')
         case 9:
             shop_system.save_data()
+            print("Complete inventory report successfully saved to inventory.csv")
+            print("Complete sale report successfully saved to sales.csv")
             break
         case _:
             print("INVALID CHOICE!\n")
