@@ -196,7 +196,25 @@ class Inventory:
                 print(inventory_df)
                 print("\n")
             case 'SALE':
-                pass
+                sales_by_product = {}
+                for sale in self.sales_records.values():
+                    sales_by_product[sale.product_id] = (sales_by_product.get(sale.product_id, 0) + sale.quantity_sold)
+                sorted_products = sorted(self.products_collection.values(), key=lambda product: sales_by_product.get(product.product_id, 0), reverse=True)
+                inventory_list = []
+                for product in sorted_products:
+                    details = product.get_details()
+                    details['quantity_sold'] = sales_by_product.get(product.product_id, 0)
+                    inventory_list.append(details)
+                inventory_df = pd.DataFrame(inventory_list).rename(columns={
+                    'product_id' : 'PRODUCT ID',
+                    'product_name' : 'PRODUCT NAME',
+                    'category' : 'CATEGORY',
+                    'price' : 'PRICE',
+                    'quantity' : 'QUANTITY',
+                    'quantity_sold' : 'QUANTITY SOLD'
+                })
+                print(inventory_df)
+                print("\n")
             case _:
                 raise ValueError("Invalid Sorting Order!")
 
@@ -252,21 +270,21 @@ class Inventory:
         else:
             plt.figure(figsize=(20,20))
             # PRODUCT BAR GRAPH
-            plt.subplot(3,1,1)
+            plt.subplot(3,3,1)
             grouped_data_prod = sale_df.groupby('product_id', as_index=False)['quantity_sold'].sum().rename(columns={'quantity_sold':'total_units_sold'})
             plt.bar(grouped_data_prod['product_id'].astype(str), grouped_data_prod['total_units_sold'])
             plt.title("Total Units Sold per Product")
             plt.xlabel('Product ID')
             plt.ylabel("Total Quantity Sold")
             # CATEGORY PIE GRAPH
-            plt.subplot(3,1,2)
+            plt.subplot(3,3,5)
             merged_df = pd.merge(sale_df, inventory_df, on='product_id')
             category_group = merged_df.groupby('category')
             category_summary = category_group['total_amount'].sum().reset_index()
             plt.pie(category_summary['total_amount'], labels=category_summary['category'], autopct='%1.1f%%')
             plt.title('Sales Distribution by Category')
             # MONTHLY PLOT GRAPH
-            plt.subplot(3,1,3)
+            plt.subplot(3,3,9)
             sale_df['date'] = pd.to_datetime(sale_df['date'])
             sale_df['month_year'] = sale_df['date'].dt.to_period('M')
             monthly_revenue = sale_df.groupby('month_year')['total_amount'].sum().reset_index()
@@ -338,9 +356,9 @@ while True:
             except ValueError as e:
                 print(f'Application Error: {e}\n')
         case 6:
-            print("=== VIEW ON BASIS OF PRICE, QUANTITY ===")
+            print("=== VIEW ON BASIS OF PRICE or QUANTITY or SALE ===")
             print("Enter in which sorted order you want to see: ")
-            sorted_order = input("Sorted Order: ")
+            sorted_order = input("Sorted Order: ").upper()
             try:
                 shop_system.sort_products(sorted_order)
             except ValueError as e:
